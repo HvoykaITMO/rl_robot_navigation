@@ -80,18 +80,30 @@ def main():
         target_radius = env_radius_to_pixels(env.target_radius)
         pygame.draw.circle(screen, (0, 255, 0), target_center, target_radius)
 
+            # Лучи
+        for i, (end_x, end_y) in enumerate(env.ray_endpoints):
+            start_point = env_to_pygame(env.robot_x, env.robot_y)
+            end_point = env_to_pygame(end_x, end_y)
+            ray_value = observation[7 + i]
+            color = (
+                int(255 * (1 - ray_value)),  # R: больше, если близко
+                int(255 * ray_value),         # G: больше, если далеко
+                0
+            )
+            pygame.draw.line(screen, color, start_point, end_point, width=2)
+
             # Робот
         robot_center = env_to_pygame(env.robot_x, env.robot_y)
         robot_radius = env_radius_to_pixels(env.robot_radius)
         pygame.draw.circle(screen, (0, 0, 255), robot_center, robot_radius)
 
             # Направление робота
-        line_length = 0.05 # в нормализованных единицах
+        line_length = 0.03 # в нормализованных единицах
         end_x = env.robot_x + line_length * np.cos(env.robot_angle)
         end_y = env.robot_y + line_length * np.sin(env.robot_angle) # Минус для инверсии угла (нужна из-за env_to_pygame)
         start_point = env_to_pygame(env.robot_x, env.robot_y)
         end_point = env_to_pygame(end_x, end_y)
-        pygame.draw.line(screen, (255, 0, 0), start_point, end_point, width=3)
+        pygame.draw.line(screen, (255, 0, 0), start_point, end_point, width=5)
 
             # Информация
 
