@@ -13,8 +13,13 @@ class RobotEnv(gym.Env):
     MIN_FROM_OBS_TO_OBS_DIST = 0.01
     MIN_FROM_OBS_TO_TARGET_DIST = 0.03
     MAP_EDGES_BUFFER = 0.01
+    FROM_ROBOT_TO_TARGET_TOL = 0.02
+    DENSE_REWARD_COEFF = 10
+    TIME_PENALTY = 0.1
+    LARGE_REWARD = 100
+    LARGE_PENALTY = 100
 
-    def __init__(self, step_size=0.1, turn_angle=0.1, max_steps=500, num_obstacles=8, robot_radius=0.02, target_radius=0.05, target_position=(0.5, 0.5)):
+    def __init__(self, step_size=0.1, turn_angle=0.1, max_steps=500, num_obstacles=8, robot_radius=0.02, target_radius=0.05):
         super(RobotEnv, self).__init__()
 
         # Параметры среды
@@ -23,6 +28,7 @@ class RobotEnv(gym.Env):
         self.num_obstacles = num_obstacles
         self.robot_radius = robot_radius
         self.target_radius = target_radius
+        self.max_steps = max_steps
         self.ray_max_dist = np.sqrt(2)
 
 
@@ -192,7 +198,72 @@ class RobotEnv(gym.Env):
 
         return self._get_obs(), info
 
+    def step(self, action):
+        old_distance = np.linalg.norm(np.array([self.robot_x, self.robot_y]) - np.array([self.target_x, self.target_y]))
 
+        match action:
+            case 0: # Стоять
+                self.robot_speed_x = 0
+                self.robot_speed_y = 0
+            case 1: # Вперёд
+                self.robot_speed_x = self.step_size * np.cos(self.robot_angle)
+                self.robot_speed_y = self.step_size * np.sin(self.robot_angle)
+            case 2: # Назад
+                self.robot_speed_x = -self.step_size * np.cos(self.robot_angle)
+                self.robot_speed_y = -self.step_size * np.sin(self.robot_angle)
+            case 3: # Влево
+                self.robot_angle = self.turn_angle
+                # self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = 0
+                self.robot_speed_y = 0
+            case 4: # Вправо
+                self.robot_angle = -self.turn_angle
+                # self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = 0
+                self.robot_speed_y = 0
+            case _:
+                pass
+
+        self.robot_x += self.robot_speed_x
+        self.robot_y += self.robot_speed_y
+
+        # Проверка на столкновение с препятствиями или вылет с карты
+        crashed = False
+        if (self.robot_x < self.robot_radius or self.robot_x > 1 - self.robot_radius 
+                or self.robot_y < self.robot_radius or self.robot_y > 1 - self.robot_radius):
+            crashed = True
+        else:
+            for obs_x, obs_y, obs_radius in self.obstacles:
+                distance = np.linalg.norm(np.array([obs_x, obs_y]) - np.array([self.robot_x, self.robot_y]))
+                if distance <= self.robot_radius + obs_radius:
+                    crashed = True
+                    break
+        
+        # Проверка, достигли ли цели
+        new_distance = np.linalg.norm(np.array([self.robot_x, self.robot_y]) - np.array([self.target_x, self.target_y]))
+        reached_target = new_distance < self.FROM_ROBOT_TO_TARGET_TOL
+
+        # Награда
+        reward = 0
+        reward += (old_distance - new_distance) * self.DENSE_REWARD_COEFF
+        reward -= self.TIME_PENALTY
+        if reached_target:
+            reward += self.LARGE_REWARD
+        elif crashed:
+            reward -= self.LARGE_PENALTY
+
+        self.current_step += 1
+        terminated = reached_target or crashed
+        truncated = self.current_step >= self.max_steps
+
+        info = {
+            "distance_to_target": new_distance,
+            "is_success": reached_target,
+            "crashed": crashed,
+            "steps_taken": self.current_step
+        }
+
+        return self._get_obs(), reward, terminated, truncated, info
 
 
 

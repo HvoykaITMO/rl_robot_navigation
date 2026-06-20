@@ -39,6 +39,7 @@
 ## 📂 Структура проекта
 rl_robot_navigation/
 ├── env/
+│   ├── tests
 │   ├── __init__.py
 │   └── robot_env.py      # Класс RobotEnv(gymnasium.Env)
 ├── agents/
