@@ -15,7 +15,8 @@ class RobotEnv(gym.Env):
     MAP_EDGES_BUFFER_DURING_GENERATION = 0.01
 
     FROM_ROBOT_TO_TARGET_DIST_ACCURACY_REGISTRATION = 0.025
-    FROM_ROBOT_TO_OBS_DIST_ACCURACY_REGISTRATION = 0
+    FROM_ROBOT_TO_OBS_DIST_ACCURACY_REGISTRATION = 0.001
+    FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION = 0.001
     RAY_MAX_DIST = 1
 
     DENSE_REWARD_COEFF = 20
@@ -272,8 +273,10 @@ class RobotEnv(gym.Env):
 
         # Проверка на столкновение с препятствиями или вылет с карты
         crashed = False
-        if (self.robot_x < self.robot_radius or self.robot_x > 1 - self.robot_radius 
-                or self.robot_y < self.robot_radius or self.robot_y > 1 - self.robot_radius):
+        if (self.robot_x <= self.robot_radius + self.FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION 
+            or self.robot_x >= 1 - self.robot_radius - self.FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION
+            or self.robot_y <= self.robot_radius + self.FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION 
+            or self.robot_y >= 1 - self.robot_radius - self.FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION):
             crashed = True
         else:
             for obs_x, obs_y, obs_radius in self.obstacles:
