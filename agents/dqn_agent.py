@@ -60,9 +60,10 @@ class DQNAgent:
         states, actions, rewards, next_states, dones = self.buffer.sample(self.batch_size)
         q_predicted = self.q_net(states).gather(1, actions)
         with torch.no_grad():
-            next_q_values = self.target_net(next_states)
-            max_next_q = next_q_values.max(dim=1, keepdim=True).values
-            target_q = rewards + self.gamma * max_next_q * (1 - dones)
+            # Double DQN
+            best_next_actions = self.q_net(next_states).argmax(dim=1, keepdim=True)
+            best_next_q_values = self.target_net(next_states).gather(1, best_next_actions)
+            target_q = rewards + self.gamma * best_next_q_values * (1 - dones)
         loss = nn.MSELoss()(q_predicted, target_q)
         self.optimizer.zero_grad()
         loss.backward()
