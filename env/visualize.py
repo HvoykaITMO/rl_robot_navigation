@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from robot_env import RobotEnv
+from env.robot_env import RobotEnv
 
 
 WINDOW_SIZE = 1000
@@ -106,7 +106,6 @@ def main():
         pygame.draw.line(screen, (255, 0, 0), start_point, end_point, width=5)
 
             # Информация
-
                 # Определяем статус
         if info.get("is_success", False):
             status = "SUCCESS!"

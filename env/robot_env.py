@@ -14,15 +14,15 @@ class RobotEnv(gym.Env):
     MIN_FROM_OBS_TO_TARGET_DIST_GENERATION = 0.03
     MAP_EDGES_BUFFER_DURING_GENERATION = 0.01
 
-    FROM_ROBOT_TO_TARGET_DIST_ACCURACY_REGISTRATION = 0.025
+    FROM_ROBOT_TO_TARGET_DIST_ACCURACY_REGISTRATION = 0.04
     FROM_ROBOT_TO_OBS_DIST_ACCURACY_REGISTRATION = 0.001
     FROM_ROBOT_TO_EDGES_DIST_ACCURACY_REGISTRATION = 0.001
     RAY_MAX_DIST = 1
 
-    DENSE_REWARD_COEFF = 20
+    DENSE_REWARD_COEFF = 5
     TIME_PENALTY = 0.1
-    LARGE_REWARD = 100
-    LARGE_PENALTY = 100
+    LARGE_REWARD = 500
+    LARGE_PENALTY = 50
 
     def __init__(self, step_size=0.01, turn_angle=0.1, max_steps=1000, num_obstacles=8, robot_radius=0.02, target_radius=0.03):
         super(RobotEnv, self).__init__()
@@ -310,6 +310,3 @@ class RobotEnv(gym.Env):
         }
 
         return self._get_obs(), reward, terminated, truncated, info
-
-
-

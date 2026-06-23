@@ -21,7 +21,8 @@ class DQNAgent:
         epsilon_decay: float = 0.995,
         buffer_size: int = 5000,
         batch_size: int = 32,
-        target_update: int = 100
+        target_update: int = 100,
+        max_grad_norm: float = 10.0
     ):
         self.q_net = QNetwork(state_size, action_size, hidden_size)
         self.target_net = QNetwork(state_size, action_size, hidden_size)
@@ -39,16 +40,15 @@ class DQNAgent:
         self.epsilon_decay = epsilon_decay
         self.batch_size = batch_size
         self.target_update = target_update
+        self.max_grad_norm = max_grad_norm
         self.total_steps = 0
 
     def select_action(self, state: np.ndarray) -> int:
         if random.random() < self.epsilon:
-            self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
             return random.randint(0, self.action_size - 1)
         else:
             with torch.no_grad():
                 q_values = self.q_net(torch.tensor(state, dtype=torch.float32).unsqueeze(0))
-                self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
                 return q_values.argmax().item()
     
     def remember(self, state, action, reward, next_state, done):
@@ -66,6 +66,7 @@ class DQNAgent:
         loss = nn.MSELoss()(q_predicted, target_q)
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), max_norm=self.max_grad_norm)
         self.optimizer.step()
 
         self.total_steps += 1
@@ -76,6 +77,16 @@ class DQNAgent:
 
     def upgrade_target_network(self):
         self.target_net.load_state_dict(self.q_net.state_dict())
+
+    def decay_epsilon(self):
+        self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
+
+    def load_model(self, path: str):
+        self.q_net.load_state_dict(torch.load(path))
+        self.upgrade_target_network()
+
+    def save_model(self, path: str):
+        torch.save(self.q_net.state_dict(), path)
 
 
 if __name__ == "__main__":
