@@ -3,7 +3,12 @@ import torch.nn as nn
 
 
 class QNetwork(nn.Module):
-    def __init__(self, input_size=15, output_size=5, hidden_size=64):
+    def __init__(
+        self,
+        input_size: int,
+        output_size: int,
+        hidden_size: int,
+    ):
         super().__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, hidden_size)
@@ -20,7 +25,7 @@ class QNetwork(nn.Module):
 
 
 if __name__ == "__main__":
-    q_net = QNetwork()
+    q_net = QNetwork(input_size=15, output_size=5, hidden_size=64)
 
     # Один observation без батча
     obs_single = torch.randn(15)

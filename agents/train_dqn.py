@@ -9,24 +9,32 @@ from tqdm import tqdm
 
 from env.robot_env import RobotEnv
 from agents.dqn_agent import DQNAgent
+from utils import constants as c
 
 
-def train(num_episodes=5000, max_steps=500):
-    env = RobotEnv()
+def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
+    env = RobotEnv(
+        step_size=c.ENV_STEP_SIZE,
+        turn_angle=c.ENV_TURN_ANGLE,
+        max_steps=max_steps,
+        num_obstacles=c.ENV_NUM_OBSTACLES,
+        robot_radius=c.ENV_ROBOT_RADIUS,
+        target_radius=c.ENV_TARGET_RADIUS,
+    )
 
     agent = DQNAgent(
         state_size=env.observation_space.shape[0],
         action_size=env.action_space.n,
-        hidden_size=128,
-        learning_rate=0.0005,
-        gamma=0.95,
-        buffer_size=50000,
-        batch_size=128,
-        target_update=700,
-        max_grad_norm=10.0,
-        epsilon=1.0,
-        epsilon_min=0.01,
-        epsilon_decay=0.9995
+        hidden_size=c.TRAIN_AGENT_HIDDEN_SIZE,
+        learning_rate=c.TRAIN_LEARNING_RATE,
+        gamma=c.TRAIN_GAMMA,
+        buffer_size=c.TRAIN_BUFFER_SIZE,
+        batch_size=c.TRAIN_BATCH_SIZE,
+        target_update=c.TRAIN_TARGET_UPDATE,
+        max_grad_norm=c.TRAIN_MAX_GRAD_NORM,
+        epsilon=c.TRAIN_EPSILON,
+        epsilon_min=c.TRAIN_EPSILON_MIN,
+        epsilon_decay=c.TRAIN_EPSILON_DECAY
     )
 
     reward_history = []
@@ -35,9 +43,10 @@ def train(num_episodes=5000, max_steps=500):
     episode_length_history = []
 
     best_reward = -float('inf')
-    os.makedirs("models", exist_ok=True)
+    os.makedirs(c.MODEL_DIR, exist_ok=True)
+    best_model_path = os.path.join(c.MODEL_DIR, c.BEST_DQN_MODEL_FILENAME)
 
-    pbar = tqdm(range(num_episodes), desc="Training")
+    pbar = tqdm(range(num_episodes), desc=c.TRAINING_PROGRESS_DESC)
 
     for episode in range(num_episodes):
         state, info = env.reset()
@@ -67,7 +76,7 @@ def train(num_episodes=5000, max_steps=500):
 
         if episode_reward > best_reward:
             best_reward = episode_reward
-            agent.save_model('models/best_dqn_model.pth')
+            agent.save_model(best_model_path)
         
         agent.decay_epsilon()
 
@@ -86,32 +95,31 @@ def train(num_episodes=5000, max_steps=500):
 
 if __name__ == "__main__":
     reward_history, loss_history, epsilon_history, episode_length_history = train()
-    plt.figure(figsize=(12, 10))
-    plt.subplot(2, 2, 1)
-    plt.plot(reward_history, color='blue')
-    plt.title('Reward History')
-    plt.xlabel('Episode')
-    plt.ylabel('Reward')
+    plt.figure(figsize=c.TRAINING_PLOT_FIGSIZE)
+    plt.subplot(*c.TRAINING_PLOT_REWARD_SUBPLOT)
+    plt.plot(reward_history, color=c.TRAINING_PLOT_REWARD_COLOR)
+    plt.title(c.TRAINING_PLOT_REWARD_TITLE)
+    plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
+    plt.ylabel(c.TRAINING_PLOT_REWARD_LABEL)
 
-    plt.subplot(2, 2, 2)
-    plt.plot(loss_history, color='orange')
-    plt.title('Loss History')
-    plt.xlabel('Episode')
-    plt.ylabel('Loss')
+    plt.subplot(*c.TRAINING_PLOT_LOSS_SUBPLOT)
+    plt.plot(loss_history, color=c.TRAINING_PLOT_LOSS_COLOR)
+    plt.title(c.TRAINING_PLOT_LOSS_TITLE)
+    plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
+    plt.ylabel(c.TRAINING_PLOT_LOSS_LABEL)
 
-    plt.subplot(2, 2, 3)
-    plt.plot(epsilon_history, color='red')
-    plt.title('Epsilon History')
-    plt.xlabel('Episode')
-    plt.ylabel('Epsilon')
+    plt.subplot(*c.TRAINING_PLOT_EPSILON_SUBPLOT)
+    plt.plot(epsilon_history, color=c.TRAINING_PLOT_EPSILON_COLOR)
+    plt.title(c.TRAINING_PLOT_EPSILON_TITLE)
+    plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
+    plt.ylabel(c.TRAINING_PLOT_EPSILON_LABEL)
 
-    plt.subplot(2, 2, 4)
-    plt.plot(episode_length_history, color='green')
-    plt.title('Episode Length History')
-    plt.xlabel('Episode')
-    plt.ylabel('Episode Length')
+    plt.subplot(*c.TRAINING_PLOT_LENGTH_SUBPLOT)
+    plt.plot(episode_length_history, color=c.TRAINING_PLOT_LENGTH_COLOR)
+    plt.title(c.TRAINING_PLOT_LENGTH_TITLE)
+    plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
+    plt.ylabel(c.TRAINING_PLOT_LENGTH_LABEL)
 
     plt.tight_layout()
-    plt.grid(True)
-    plt.savefig('models/training_results.png')
+    plt.savefig(os.path.join(c.MODEL_DIR, c.TRAINING_RESULTS_FILENAME))
     plt.show()

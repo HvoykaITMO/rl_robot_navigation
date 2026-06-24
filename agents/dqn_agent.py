@@ -13,16 +13,16 @@ class DQNAgent:
         self,
         state_size: int,
         action_size: int,
-        hidden_size: int = 64,
-        learning_rate: float = 0.001,
-        gamma: float = 0.99,
-        epsilon: float = 1.0,
-        epsilon_min: float = 0.01,
-        epsilon_decay: float = 0.995,
-        buffer_size: int = 5000,
-        batch_size: int = 32,
-        target_update: int = 100,
-        max_grad_norm: float = 10.0
+        hidden_size: int,
+        learning_rate: float,
+        gamma: float,
+        epsilon: float,
+        epsilon_min: float,
+        epsilon_decay: float,
+        buffer_size: int,
+        batch_size: int,
+        target_update: int,
+        max_grad_norm: float,
     ):
         self.q_net = QNetwork(state_size, action_size, hidden_size)
         self.target_net = QNetwork(state_size, action_size, hidden_size)
@@ -64,7 +64,7 @@ class DQNAgent:
             best_next_actions = self.q_net(next_states).argmax(dim=1, keepdim=True)
             best_next_q_values = self.target_net(next_states).gather(1, best_next_actions)
             target_q = rewards + self.gamma * best_next_q_values * (1 - dones)
-        loss = nn.MSELoss()(q_predicted, target_q)
+        loss = nn.SmoothL1Loss()(q_predicted, target_q)
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.q_net.parameters(), max_norm=self.max_grad_norm)
@@ -95,9 +95,15 @@ if __name__ == "__main__":
         state_size=15,
         action_size=5,
         hidden_size=64,
+        learning_rate=0.001,
+        gamma=0.99,
+        epsilon=1.0,
+        epsilon_min=0.01,
+        epsilon_decay=0.995,
         buffer_size=1000,
         batch_size=32,
-        target_update=10
+        target_update=10,
+        max_grad_norm=10.0,
     )
     
     print(f"Initial epsilon: {agent.epsilon}")
