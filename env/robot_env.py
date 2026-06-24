@@ -36,20 +36,17 @@ class RobotEnv(gym.Env):
         self.ray_endpoints = [] # Для визуализаций
         
         # Пространство действий
-        self.action_space = gym.spaces.Discrete(5)
+        self.action_space = gym.spaces.Discrete(9)
 
 
-        # Индексы: 0-1 pos, 2-3 vel, 4 angle, 5 dist, 6 angle_to_target, 7-14 rays
+        # Индексы: 0 dist, 1 angle_to_target, 2-9 rays
         OBS_LOW  = np.array([
-            0, 0,           # x, y
-            -1, -1,         # v_x, v_y
-            -1,             # angle
-            0,              # dist_to_target
+            0,              # dist
             -1,             # angle_to_target
             0, 0, 0, 0, 0, 0, 0, 0,  # rays
         ], dtype=np.float32)
 
-        OBS_HIGH = np.ones(15, dtype=np.float32)
+        OBS_HIGH = np.ones(10, dtype=np.float32)
         
         # Пространство наблюдений
         self.observation_space = gym.spaces.Box(
@@ -121,19 +118,15 @@ class RobotEnv(gym.Env):
 
     def _get_obs(self) -> np.ndarray:
         
-        obs = np.empty(15, dtype=np.float32)
-        obs[0:2] = self.robot_x, self.robot_y
-        obs[2:4] = self.robot_speed_x / self.step_size, self.robot_speed_y / self.step_size
-        obs[4] = self.robot_angle / np.pi
-        obs[5] = np.linalg.norm(np.array([self.target_x, self.target_y]) - np.array([self.robot_x, self.robot_y])) / c.RAY_MAX_DIST
+        obs = np.empty(10, dtype=np.float32)
+        obs[0] = np.linalg.norm(np.array([self.target_x, self.target_y]) - np.array([self.robot_x, self.robot_y])) / c.RAY_MAX_DIST
         
         # Нормализация относительного угла
         dx, dy = self.target_x - self.robot_x, self.target_y - self.robot_y
         absolute_angle_to_target = np.atan2(dy, dx) # [-pi, pi]
         relative_angle_to_target = absolute_angle_to_target - self.robot_angle
         relative_angle_to_target = (relative_angle_to_target + np.pi) % (2 * np.pi) - np.pi # Может выйти за диапазон [-pi, pi], а так не выйдет
-        obs[6] = relative_angle_to_target / np.pi
-
+        obs[1] = relative_angle_to_target / np.pi
 
         # Нормализация расстояний, полученных лучами
         self.ray_endpoints = []  # Для визуализации 
@@ -159,7 +152,7 @@ class RobotEnv(gym.Env):
             end_y = self.robot_y + min_distance * dir_y
             self.ray_endpoints.append((end_x, end_y))
 
-            obs[7+i] = min_distance / c.RAY_MAX_DIST
+            obs[2+i] = min_distance / c.RAY_MAX_DIST
         
         return obs
 
@@ -237,22 +230,51 @@ class RobotEnv(gym.Env):
             case 0: # Стоять
                 self.robot_speed_x = 0
                 self.robot_speed_y = 0
+
             case 1: # Вперёд
                 self.robot_speed_x = self.step_size * np.cos(self.robot_angle)
                 self.robot_speed_y = self.step_size * np.sin(self.robot_angle)
+
             case 2: # Назад
-                self.robot_speed_x = -self.step_size * np.cos(self.robot_angle)
-                self.robot_speed_y = -self.step_size * np.sin(self.robot_angle)
+                self.robot_speed_x = -self.step_size * np.cos(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+                self.robot_speed_y = -self.step_size * np.sin(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+
             case 3: # Влево
                 self.robot_angle += self.turn_angle
                 self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
                 self.robot_speed_x = 0
                 self.robot_speed_y = 0
+
             case 4: # Вправо
                 self.robot_angle -= self.turn_angle
                 self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
                 self.robot_speed_x = 0
                 self.robot_speed_y = 0
+
+            case 5: # Вперёд и влево
+                self.robot_angle += self.turn_angle
+                self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = self.step_size * np.cos(self.robot_angle)
+                self.robot_speed_y = self.step_size * np.sin(self.robot_angle)
+
+            case 6: # Вперёд и вправо
+                self.robot_angle -= self.turn_angle
+                self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = self.step_size * np.cos(self.robot_angle)
+                self.robot_speed_y = self.step_size * np.sin(self.robot_angle)
+
+            case 7: # Назад и влево
+                self.robot_angle += self.turn_angle
+                self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = -self.step_size * np.cos(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+                self.robot_speed_y = -self.step_size * np.sin(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+
+            case 8: # Назад и вправо
+                self.robot_angle -= self.turn_angle
+                self.robot_angle = (self.robot_angle + np.pi) % (2 * np.pi) - np.pi
+                self.robot_speed_x = -self.step_size * np.cos(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+                self.robot_speed_y = -self.step_size * np.sin(self.robot_angle) * c.BACKWARD_SPEED_FACTOR  # Замедление при движении назад
+
             case _:
                 pass
 
@@ -275,18 +297,25 @@ class RobotEnv(gym.Env):
         
         # Проверка, достигли ли цели
         new_distance = np.linalg.norm(np.array([self.robot_x, self.robot_y]) - np.array([self.target_x, self.target_y]))
-        reached_target = new_distance < c.FROM_ROBOT_TO_TARGET_DIST_ACCURACY_REGISTRATION
+        reached_target = new_distance < self.robot_radius + self.target_radius + c.FROM_ROBOT_TO_TARGET_DIST_ACCURACY_REGISTRATION
 
         # Награда
         reward = 0
         distance_diff = old_distance - new_distance
-        if distance_diff > 0:
-            reward += distance_diff * c.DENSE_REWARD_COEFF
-        else:
-            reward -= c.TIME_PENALTY
+        reward += distance_diff * c.DENSE_REWARD_COEFF
+        reward -= c.TIME_PENALTY
         if reached_target:
             reward += c.LARGE_REWARD
-        else:
+        if action in (
+            c.ACTION_LEFT,
+            c.ACTION_RIGHT,
+            c.ACTION_FORWARD_LEFT,
+            c.ACTION_FORWARD_RIGHT,
+            c.ACTION_BACKWARD_LEFT,
+            c.ACTION_BACKWARD_RIGHT,
+        ):
+            reward -= c.TURN_PENALTY
+        elif crashed:
             reward -= c.LARGE_PENALTY
 
         self.current_step += 1

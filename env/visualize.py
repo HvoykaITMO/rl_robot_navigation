@@ -49,7 +49,15 @@ def main():
         # Обработка клавиш
         keys = pygame.key.get_pressed() # Возвращает состояние клавиш в данный момент
         action = c.ACTION_STAND # По умолчанию стоять
-        if keys[pygame.K_w] or keys[pygame.K_UP]:
+        if keys[pygame.K_w] and keys[pygame.K_a] or keys[pygame.K_UP] and keys[pygame.K_LEFT]:
+            action = c.ACTION_FORWARD_LEFT  # Вперёд и влево
+        elif keys[pygame.K_w] and keys[pygame.K_d] or keys[pygame.K_UP] and keys[pygame.K_RIGHT]:
+            action = c.ACTION_FORWARD_RIGHT  # Вперёд и вправо
+        elif keys[pygame.K_s] and keys[pygame.K_a] or keys[pygame.K_DOWN] and keys[pygame.K_LEFT]:
+            action = c.ACTION_BACKWARD_LEFT  # Назад и влево
+        elif keys[pygame.K_s] and keys[pygame.K_d] or keys[pygame.K_DOWN] and keys[pygame.K_RIGHT]:
+            action = c.ACTION_BACKWARD_RIGHT  # Назад и вправо
+        elif keys[pygame.K_w] or keys[pygame.K_UP]:
             action = c.ACTION_FORWARD  # Вперёд
         elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
             action = c.ACTION_BACKWARD  # Назад
@@ -88,7 +96,7 @@ def main():
         for i, (end_x, end_y) in enumerate(env.ray_endpoints):
             start_point = env_to_pygame(env.robot_x, env.robot_y)
             end_point = env_to_pygame(end_x, end_y)
-            ray_value = observation[7 + i]
+            ray_value = observation[-1 - i]
             color = (
                 int(c.RAY_COLOR_MAX * (c.PYGAME_COORD_MAX - ray_value)),  # R: больше, если близко
                 int(c.RAY_COLOR_MAX * ray_value),         # G: больше, если далеко
@@ -104,7 +112,7 @@ def main():
             # Направление робота
         line_length = c.ROBOT_DIRECTION_LINE_LENGTH # в нормализованных единицах
         end_x = env.robot_x + line_length * np.cos(env.robot_angle)
-        end_y = env.robot_y + line_length * np.sin(env.robot_angle) # Минус для инверсии угла (нужна из-за env_to_pygame)
+        end_y = env.robot_y + line_length * np.sin(env.robot_angle)
         start_point = env_to_pygame(env.robot_x, env.robot_y)
         end_point = env_to_pygame(end_x, end_y)
         pygame.draw.line(screen, c.RED, start_point, end_point, width=c.ROBOT_DIRECTION_LINE_WIDTH)
@@ -120,6 +128,7 @@ def main():
         else:
             status = c.STATUS_RUNNING
             status_color = c.BLACK
+            
                 # Отрисовка текста
         draw_text(screen, font, f"Reward: {reward:.2f}", c.VISUALIZE_REWARD_TEXT_POS)
         draw_text(screen, font, f"Steps: {env.current_step}", c.VISUALIZE_STEPS_TEXT_POS)
