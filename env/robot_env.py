@@ -302,10 +302,18 @@ class RobotEnv(gym.Env):
         # Награда
         reward = 0
         distance_diff = old_distance - new_distance
-        reward += distance_diff * c.DENSE_REWARD_COEFF
+
+        next_obs = self._get_obs()
+        ray_distance = next_obs[-1:-1+c.RAYS_AMOUNT_GENERATION + 1:-1] * c.RAY_MAX_DIST
+        min_ray_distance = ray_distance.min()
+        in_safe_zone = min_ray_distance < c.MIN_RAY_DISTANCE_TO_SAFE_ZONE_REGISTRATION
+        if in_safe_zone:
+            reward += max(distance_diff, 0) * c.DENSE_REWARD_COEFF
+        else:
+            reward += distance_diff * c.DENSE_REWARD_COEFF
+            # Штраф за время
         reward -= c.TIME_PENALTY
-        if reached_target:
-            reward += c.LARGE_REWARD
+            # Штраф за поворот
         if action in (
             c.ACTION_LEFT,
             c.ACTION_RIGHT,
@@ -315,6 +323,10 @@ class RobotEnv(gym.Env):
             c.ACTION_BACKWARD_RIGHT,
         ):
             reward -= c.TURN_PENALTY
+            # Бонус за достижение цели
+        if reached_target:
+            reward += c.LARGE_REWARD
+            # Штраф за столкновение
         elif crashed:
             reward -= c.LARGE_PENALTY
 
