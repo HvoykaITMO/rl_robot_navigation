@@ -9,7 +9,7 @@ from utils import constants as c
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-MODEL_PATH = PROJECT_ROOT / c.MODEL_DIR / c.BEST_DQN_MODEL_FILENAME
+MODEL_PATH = PROJECT_ROOT / c.MODEL_DIR / c.VISUALIZE_MODEL_FILENAME
 
 
 def env_to_pygame(env_x, env_y):
@@ -59,7 +59,7 @@ def render_env(
     for i, (end_x, end_y) in enumerate(env.ray_endpoints):
         start_point = env_to_pygame(env.robot_x, env.robot_y)
         end_point = env_to_pygame(end_x, end_y)
-        ray_value = observation[7 + i]
+        ray_value = observation[-1 - i]
         color = (
             int(c.RAY_COLOR_MAX * (c.PYGAME_COORD_MAX - ray_value)),  # R: больше, если близко
             int(c.RAY_COLOR_MAX * ray_value),         # G: больше, если далеко

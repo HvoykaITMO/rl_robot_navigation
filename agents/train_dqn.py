@@ -2,7 +2,6 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -44,7 +43,7 @@ def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
 
     best_reward = -float('inf')
     os.makedirs(c.MODEL_DIR, exist_ok=True)
-    best_model_path = os.path.join(c.MODEL_DIR, c.BEST_DQN_MODEL_FILENAME)
+    best_model_path = os.path.join(c.MODEL_DIR, c.DQN_MODEL_FILENAME)
 
     pbar = tqdm(range(num_episodes), desc=c.TRAINING_PROGRESS_DESC)
 
