@@ -159,8 +159,6 @@ class RobotEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
-        self.robot_x = self.np_random.uniform(self.robot_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - self.robot_radius)
-        self.robot_y = self.np_random.uniform(self.robot_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - self.robot_radius)
         self.robot_speed_x = 0
         self.robot_speed_y = 0
         self.robot_angle = self.np_random.uniform(-np.pi, np.pi)
@@ -177,15 +175,13 @@ class RobotEnv(gym.Env):
                     raise RuntimeError(f"Too many attempts to generate obstacle {i}")
 
                 obs_radius = self.np_random.uniform(c.MIN_OBS_RADIUS_GENERATION, c.MAX_OBS_RADIUS_GENERATION)
-                obs_x = self.np_random.uniform(obs_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - obs_radius)
-                obs_y = self.np_random.uniform(obs_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - obs_radius)
+                obs_x = self.np_random.uniform(obs_radius + c.MAP_EDGES_BUFFER_DURING_OBS_GENERATION, 1 - obs_radius)
+                obs_y = self.np_random.uniform(obs_radius + c.MAP_EDGES_BUFFER_DURING_OBS_GENERATION, 1 - obs_radius)
                 
                 is_valid = True
 
-                if np.linalg.norm(np.array([obs_x, obs_y]) - np.array([self.robot_x, self.robot_y])) < self.robot_radius + obs_radius + c.MIN_FROM_ROBOT_TO_OBS_DIST_GENERATION:
-                    is_valid = False
-
-                if any((np.linalg.norm(np.array([obs_x, obs_y]) - np.array([other_obs_x, other_obs_y])) < obs_radius + other_obs_radius + c.MIN_FROM_OBS_TO_OBS_DIST_GENERATION for other_obs_x, other_obs_y, other_obs_radius in self.obstacles)):
+                if any((np.linalg.norm(np.array([obs_x, obs_y]) - np.array([other_obs_x, other_obs_y])) < 
+                    obs_radius + other_obs_radius + c.MIN_FROM_OBS_TO_OBS_DIST_GENERATION for other_obs_x, other_obs_y, other_obs_radius in self.obstacles)):
                     is_valid = False
 
             self.obstacles.append((obs_x, obs_y, obs_radius))
@@ -196,10 +192,27 @@ class RobotEnv(gym.Env):
             attempts += 1
 
             if attempts > c.MAX_ATTEMPTS_FOR_WHILE_GENERATION:
+                raise RuntimeError("Too many attempts to generate robot")
+
+            self.robot_x = self.np_random.uniform(self.robot_radius + c.MAP_EDGES_BUFFER_DURING_ROBOT_GENERATION, 1 - self.robot_radius)
+            self.robot_y = self.np_random.uniform(self.robot_radius + c.MAP_EDGES_BUFFER_DURING_ROBOT_GENERATION, 1 - self.robot_radius)
+
+            is_valid = True
+
+            if any((np.linalg.norm(np.array([self.robot_x, self.robot_y]) - np.array([obs_x, obs_y])) < 
+                obs_radius + self.robot_radius + c.MIN_FROM_ROBOT_TO_OBS_DIST_GENERATION for obs_x, obs_y, obs_radius in self.obstacles)):
+                is_valid = False
+
+        is_valid = False
+        attempts = 0
+        while not is_valid:
+            attempts += 1
+
+            if attempts > c.MAX_ATTEMPTS_FOR_WHILE_GENERATION:
                 raise RuntimeError(f"Too many attempts to generate target")
 
-            target_x = self.np_random.uniform(self.target_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - self.target_radius)
-            target_y = self.np_random.uniform(self.target_radius + c.MAP_EDGES_BUFFER_DURING_GENERATION, 1 - self.target_radius)
+            target_x = self.np_random.uniform(self.target_radius + c.MAP_EDGES_BUFFER_DURING_TARGET_GENERATION, 1 - self.target_radius)
+            target_y = self.np_random.uniform(self.target_radius + c.MAP_EDGES_BUFFER_DURING_TARGET_GENERATION, 1 - self.target_radius)
 
             is_valid = True
 
@@ -304,7 +317,7 @@ class RobotEnv(gym.Env):
         distance_diff = old_distance - new_distance
 
         next_obs = self._get_obs()
-        ray_distance = next_obs[-1:-1+c.RAYS_AMOUNT_GENERATION + 1:-1] * c.RAY_MAX_DIST
+        ray_distance = next_obs[2:2+c.RAYS_AMOUNT_GENERATION + 1] * c.RAY_MAX_DIST
         min_ray_distance = ray_distance.min()
         in_safe_zone = min_ray_distance < c.MIN_RAY_DISTANCE_TO_SAFE_ZONE_REGISTRATION
         if in_safe_zone:

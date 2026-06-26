@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import argparse
 from pathlib import Path
 
 
@@ -10,6 +11,17 @@ from utils import constants as c
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = PROJECT_ROOT / c.MODEL_DIR / c.VISUALIZE_MODEL_FILENAME
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Visualize trained DQN agent")
+    parser.add_argument(
+        "--model-path",
+        type=Path,
+        default=MODEL_PATH,
+        help="Path to the .pth model file to visualize",
+    )
+    return parser.parse_args()
 
 
 def env_to_pygame(env_x, env_y):
@@ -103,7 +115,7 @@ def render_env(
     pygame.display.flip()
 
 
-def main():
+def main(model_path: Path):
     # Инициализация среды
     pygame.init()
     screen = pygame.display.set_mode((c.WINDOW_SIZE, c.WINDOW_SIZE))
@@ -134,7 +146,7 @@ def main():
         target_update=c.TRAIN_TARGET_UPDATE,
         max_grad_norm=c.TRAIN_MAX_GRAD_NORM,
     )
-    agent.load_model(str(MODEL_PATH))
+    agent.load_model(str(model_path))
     agent.q_net.eval()
 
     reward = 0.0
@@ -173,4 +185,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args.model_path)
