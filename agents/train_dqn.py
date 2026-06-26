@@ -2,6 +2,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -11,7 +12,11 @@ from agents.dqn_agent import DQNAgent
 from utils import constants as c
 
 
-def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
+def train(
+    num_episodes=c.TRAIN_NUM_EPISODES,
+    max_steps=c.EPISODE_MAX_STEPS,
+    load_path=None,
+):
     env = RobotEnv(
         step_size=c.ENV_STEP_SIZE,
         turn_angle=c.ENV_TURN_ANGLE,
@@ -36,12 +41,15 @@ def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
         epsilon_decay=c.TRAIN_EPSILON_DECAY
     )
 
+    if load_path:
+        agent.load_model(load_path)
+
     reward_history = []
     loss_history = []
     epsilon_history = []
     episode_length_history = []
 
-    best_reward = -float('inf')
+    best_reward = -float("inf")
     os.makedirs(c.MODEL_DIR, exist_ok=True)
     best_model_path = os.path.join(c.MODEL_DIR, c.DQN_MODEL_FILENAME)
 
@@ -76,15 +84,15 @@ def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
         if episode_reward > best_reward:
             best_reward = episode_reward
             agent.save_model(best_model_path)
-        
+
         agent.decay_epsilon()
 
         pbar.set_postfix({
-            'Reward': f'{episode_reward:.2f}',
-            'Loss': f'{np.mean(episode_loss) if episode_loss else 0:.4f}',
-            'Epsilon': f'{agent.epsilon:.4f}',
-            'Length': f'{episode_length}',
-            'Best Reward': f'{best_reward:.2f}'
+            "Reward": f"{episode_reward:.2f}",
+            "Loss": f"{np.mean(episode_loss) if episode_loss else 0:.4f}",
+            "Epsilon": f"{agent.epsilon:.4f}",
+            "Length": f"{episode_length}",
+            "Best": f"{best_reward:.2f}",
         })
         pbar.update(1)
     pbar.close()
@@ -92,8 +100,22 @@ def train(num_episodes=c.TRAIN_NUM_EPISODES, max_steps=c.EPISODE_MAX_STEPS):
     return reward_history, loss_history, epsilon_history, episode_length_history
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Train DQN agent for robot navigation")
+    parser.add_argument(
+        "--load-model",
+        type=str,
+        default=None,
+        help="Path to an existing .pth model to continue training from",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    reward_history, loss_history, epsilon_history, episode_length_history = train()
+    args = parse_args()
+    reward_history, loss_history, epsilon_history, episode_length_history = train(
+        load_path=args.load_model,
+    )
     plt.figure(figsize=c.TRAINING_PLOT_FIGSIZE)
     plt.subplot(*c.TRAINING_PLOT_REWARD_SUBPLOT)
     plt.plot(reward_history, color=c.TRAINING_PLOT_REWARD_COLOR)
