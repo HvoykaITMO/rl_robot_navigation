@@ -317,7 +317,7 @@ class RobotEnv(gym.Env):
         distance_diff = old_distance - new_distance
 
         next_obs = self._get_obs()
-        ray_distance = next_obs[2:2+c.RAYS_AMOUNT_GENERATION + 1] * c.RAY_MAX_DIST
+        ray_distance = next_obs[len(next_obs) - c.RAYS_AMOUNT_GENERATION:len(next_obs)] * c.RAY_MAX_DIST
         min_ray_distance = ray_distance.min()
         in_safe_zone = min_ray_distance < c.MIN_RAY_DISTANCE_TO_SAFE_ZONE_REGISTRATION
         if in_safe_zone:

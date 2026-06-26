@@ -6,7 +6,7 @@ from utils import constants as c
 
 def env_to_pygame(env_x, env_y):
     pygame_x = int(env_x * c.WINDOW_SIZE)
-    pygame_y = int((c.PYGAME_COORD_MAX - env_y) * c.WINDOW_SIZE)  # Инверсия Y
+    pygame_y = int((1 - env_y) * c.WINDOW_SIZE)  # Инверсия Y
     return pygame_x, pygame_y
 
 
@@ -96,10 +96,10 @@ def main():
         for i, (end_x, end_y) in enumerate(env.ray_endpoints):
             start_point = env_to_pygame(env.robot_x, env.robot_y)
             end_point = env_to_pygame(end_x, end_y)
-            ray_value = observation[-1 - i]
+            ray_value = observation[len(observation) - c.RAYS_AMOUNT_GENERATION + i]
             color = (
-                int(c.RAY_COLOR_MAX * (c.PYGAME_COORD_MAX - ray_value)),  # R: больше, если близко
-                int(c.RAY_COLOR_MAX * ray_value),         # G: больше, если далеко
+                int(255 * (1 - ray_value)),  # R: больше, если близко
+                int(255 * ray_value),         # G: больше, если далеко
                 0
             )
             pygame.draw.line(screen, color, start_point, end_point, width=c.RAY_LINE_WIDTH)
