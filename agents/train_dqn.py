@@ -18,8 +18,6 @@ def train(
     load_path=None,
 ):
     env = RobotEnv(
-        step_size=c.ENV_STEP_SIZE,
-        turn_angle=c.ENV_TURN_ANGLE,
         max_steps=max_steps,
         num_obstacles=c.ENV_NUM_OBSTACLES,
         robot_radius=c.ENV_ROBOT_RADIUS,
@@ -46,14 +44,19 @@ def train(
 
     reward_history = []
     loss_history = []
-    epsilon_history = []
     episode_length_history = []
+    success_history = []
+    success_rate_history = []
 
-    best_reward = -float("inf")
     os.makedirs(c.MODEL_DIR, exist_ok=True)
+
     best_model_path = os.path.join(c.MODEL_DIR, c.DQN_MODEL_FILENAME)
+    last_model_path = os.path.join(c.MODEL_DIR, c.DQN_LAST_MODEL_FILENAME)
 
     pbar = tqdm(range(num_episodes), desc=c.TRAINING_PROGRESS_DESC)
+
+    best_success_rate = -float("inf")
+    best_mean_reward = -float("inf")
 
     for episode in range(num_episodes):
         state, info = env.reset()
@@ -79,25 +82,41 @@ def train(
         reward_history.append(episode_reward)
         episode_length_history.append(episode_length)
         loss_history.append(np.mean(episode_loss) if episode_loss else 0)
-        epsilon_history.append(agent.epsilon)
+        success_history.append(1 if info["is_success"] else 0)
 
-        if episode_reward > best_reward:
-            best_reward = episode_reward
-            agent.save_model(best_model_path)
+        reward_window = reward_history[-c.TRAIN_SUCCESS_RATE_WINDOW:]
+        success_window = success_history[-c.TRAIN_SUCCESS_RATE_WINDOW:]
+        success_rate = np.mean(success_window)
+        success_rate_history.append(success_rate)
+        mean_reward = np.mean(reward_window)
+        if len(success_window) == c.TRAIN_SUCCESS_RATE_WINDOW:
+            is_better_success = success_rate > best_success_rate
+            is_same_success_better_reward = (
+                success_rate == best_success_rate
+                and mean_reward > best_mean_reward
+            )
+            if is_better_success or is_same_success_better_reward:
+                best_success_rate = success_rate
+                best_mean_reward = mean_reward
+                agent.save_model(best_model_path)
 
         agent.decay_epsilon()
 
         pbar.set_postfix({
             "Reward": f"{episode_reward:.2f}",
+            "MeanReward": f"{mean_reward:.2f}",
+            "BestReward": f"{max(best_mean_reward, 0):.2f}",
             "Loss": f"{np.mean(episode_loss) if episode_loss else 0:.4f}",
             "Epsilon": f"{agent.epsilon:.4f}",
             "Length": f"{episode_length}",
-            "Best": f"{best_reward:.2f}",
+            "SuccessRate": f"{success_rate:.2%}",
+            "BestSuccess": f"{max(best_success_rate, 0):.2%}",
         })
         pbar.update(1)
     pbar.close()
+    agent.save_model(last_model_path)
 
-    return reward_history, loss_history, epsilon_history, episode_length_history
+    return reward_history, loss_history, success_rate_history, episode_length_history
 
 
 def parse_args():
@@ -113,12 +132,12 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    reward_history, loss_history, epsilon_history, episode_length_history = train(
+    reward_history, loss_history, success_rate_history, episode_length_history = train(
         load_path=args.load_model,
     )
     plt.figure(figsize=c.TRAINING_PLOT_FIGSIZE)
     plt.subplot(*c.TRAINING_PLOT_REWARD_SUBPLOT)
-    plt.plot(reward_history, color=c.TRAINING_PLOT_REWARD_COLOR)
+    plt.scatter(range(len(reward_history)), reward_history, color=c.TRAINING_PLOT_REWARD_COLOR)
     plt.title(c.TRAINING_PLOT_REWARD_TITLE)
     plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
     plt.ylabel(c.TRAINING_PLOT_REWARD_LABEL)
@@ -129,11 +148,11 @@ if __name__ == "__main__":
     plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
     plt.ylabel(c.TRAINING_PLOT_LOSS_LABEL)
 
-    plt.subplot(*c.TRAINING_PLOT_EPSILON_SUBPLOT)
-    plt.plot(epsilon_history, color=c.TRAINING_PLOT_EPSILON_COLOR)
-    plt.title(c.TRAINING_PLOT_EPSILON_TITLE)
+    plt.subplot(*c.TRAINING_PLOT_SUCCESS_RATE_SUBPLOT)
+    plt.plot(success_rate_history, color=c.TRAINING_PLOT_SUCCESS_RATE_COLOR)
+    plt.title(c.TRAINING_PLOT_SUCCESS_RATE_TITLE)
     plt.xlabel(c.TRAINING_PLOT_EPISODE_LABEL)
-    plt.ylabel(c.TRAINING_PLOT_EPSILON_LABEL)
+    plt.ylabel(c.TRAINING_PLOT_SUCCESS_RATE_LABEL)
 
     plt.subplot(*c.TRAINING_PLOT_LENGTH_SUBPLOT)
     plt.plot(episode_length_history, color=c.TRAINING_PLOT_LENGTH_COLOR)

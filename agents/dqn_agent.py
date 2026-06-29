@@ -83,54 +83,8 @@ class DQNAgent:
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
     def load_model(self, path: str):
-        self.q_net.load_state_dict(torch.load(path))
+        self.q_net.load_state_dict(torch.load(path, map_location=torch.device("cpu")))
         self.upgrade_target_network()
 
     def save_model(self, path: str):
         torch.save(self.q_net.state_dict(), path)
-
-
-if __name__ == "__main__":
-    agent = DQNAgent(
-        state_size=15,
-        action_size=5,
-        hidden_size=64,
-        learning_rate=0.001,
-        gamma=0.99,
-        epsilon=1.0,
-        epsilon_min=0.01,
-        epsilon_decay=0.995,
-        buffer_size=1000,
-        batch_size=32,
-        target_update=10,
-        max_grad_norm=10.0,
-    )
-    
-    print(f"Initial epsilon: {agent.epsilon}")
-    
-
-    for i in range(100):
-        state = np.random.randn(15)
-        action = random.randint(0, 4)
-        reward = np.random.randn()
-        next_state = np.random.randn(15)
-        done = random.random() < 0.1
-        agent.remember(state, action, reward, next_state, done)
-    
-    print(f"Buffer size: {len(agent.buffer)}")
-    
-
-    test_state = np.random.randn(15)
-    for i in range(5):
-        action = agent.select_action(test_state)
-        print(f"Action {i}: {action} (epsilon={agent.epsilon:.3f})")
-    
-    
-    print("\nTraining...")
-    for i in range(20):
-        loss = agent.learn()
-        if i % 5 == 0:
-            print(f"Step {i}: loss={loss:.4f}, epsilon={agent.epsilon:.3f}")
-    
-    print(f"\nFinal epsilon: {agent.epsilon}")
-    print("Test completed!")

@@ -23,18 +23,14 @@ class QNetwork(nn.Module):
         x = self.fc3(x)
         return x
 
-
 if __name__ == "__main__":
-    q_net = QNetwork(input_size=15, output_size=5, hidden_size=64)
+    q_net = QNetwork(input_size=26, output_size=20, hidden_size=64)
 
-    # Один observation без батча
-    obs_single = torch.randn(15)
-    print("Single:", q_net(obs_single).shape)  # должно быть (5,)
+    obs_single = torch.randn(26)
+    print("Single:", q_net(obs_single).shape)  # должно быть (20,)
 
-    # Один observation с батчем (как у тебя)
-    obs_batch_1 = torch.randn(1, 15)
-    print("Batch 1:", q_net(obs_batch_1).shape)  # должно быть (1, 5)
+    obs_batch_1 = torch.randn(1, 26)
+    print("Batch 1:", q_net(obs_batch_1).shape)  # должно быть (1, 20)
 
-    # Батч из 32 observations
-    obs_batch_32 = torch.randn(32, 15)
-    print("Batch 32:", q_net(obs_batch_32).shape)  # должно быть (32, 5)
+    obs_batch_32 = torch.randn(32, 26)
+    print("Batch 32:", q_net(obs_batch_32).shape)  # должно быть (32, 20)

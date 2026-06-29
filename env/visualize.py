@@ -2,6 +2,7 @@ import pygame
 import numpy as np
 from env.robot_env import RobotEnv
 from utils import constants as c
+from utils.funcs import get_action_id
 
 
 def env_to_pygame(env_x, env_y):
@@ -29,14 +30,13 @@ def main():
 
     # Создание среды
     env = RobotEnv(
-        step_size=c.ENV_STEP_SIZE,
-        turn_angle=c.ENV_TURN_ANGLE,
         max_steps=c.EPISODE_MAX_STEPS,
         num_obstacles=c.ENV_NUM_OBSTACLES,
         robot_radius=c.ENV_ROBOT_RADIUS,
         target_radius=c.ENV_TARGET_RADIUS,
     )
     observation, info = env.reset()
+    reward = 0.0
 
     # Главный цикл
     running = True
@@ -45,34 +45,38 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                running = False
 
         # Обработка клавиш
         keys = pygame.key.get_pressed() # Возвращает состояние клавиш в данный момент
-        action = c.ACTION_STAND # По умолчанию стоять
-        if keys[pygame.K_w] and keys[pygame.K_a] or keys[pygame.K_UP] and keys[pygame.K_LEFT]:
-            action = c.ACTION_FORWARD_LEFT  # Вперёд и влево
-        elif keys[pygame.K_w] and keys[pygame.K_d] or keys[pygame.K_UP] and keys[pygame.K_RIGHT]:
-            action = c.ACTION_FORWARD_RIGHT  # Вперёд и вправо
-        elif keys[pygame.K_s] and keys[pygame.K_a] or keys[pygame.K_DOWN] and keys[pygame.K_LEFT]:
-            action = c.ACTION_BACKWARD_LEFT  # Назад и влево
-        elif keys[pygame.K_s] and keys[pygame.K_d] or keys[pygame.K_DOWN] and keys[pygame.K_RIGHT]:
-            action = c.ACTION_BACKWARD_RIGHT  # Назад и вправо
-        elif keys[pygame.K_w] or keys[pygame.K_UP]:
-            action = c.ACTION_FORWARD  # Вперёд
+        throttle = 0.0
+        steering = 0.0
+        brake = 0.0
+        if keys[pygame.K_w] or keys[pygame.K_UP]:
+            throttle = 1.0
         elif keys[pygame.K_s] or keys[pygame.K_DOWN]:
-            action = c.ACTION_BACKWARD  # Назад
-        elif keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            action = c.ACTION_LEFT  # Поворот влево
+            brake = 1.0
+        if keys[pygame.K_a] or keys[pygame.K_LEFT]:
+            steering = 1.0
         elif keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            action = c.ACTION_RIGHT  # Поворот вправо
+            steering = -1.0
+        if keys[pygame.K_SPACE]:
+            throttle = 0.0
+            brake = 1.0
+
+        action = get_action_id(throttle, steering, brake)
         
+
         # Применение действия
         if keys[pygame.K_r]: # Перезапуск по клавише
-            obs, info = env.reset()
+            observation, info = env.reset()
+            reward = 0.0
         else:
             observation, reward, terminated, truncated, info = env.step(action)
             if terminated or truncated: # Конец эпизода - перезапуск
                 observation, info = env.reset()
+                reward = 0.0
         
         # Отрисовка
             # Фон

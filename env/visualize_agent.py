@@ -102,7 +102,7 @@ def render_env(
     else:
         status = c.STATUS_RUNNING
         status_color = c.BLACK
-    action_name = c.ACTION_NAMES.get(action, c.ACTION_UNKNOWN_NAME)
+    action_name = c.ACTION_NAMES.get(action, "Unknown")
     draw_text(screen, font, f"Episode: {episode}", c.VISUALIZE_AGENT_EPISODE_TEXT_POS)
     draw_text(screen, font, f"Step: {env.current_step}", c.VISUALIZE_AGENT_STEP_TEXT_POS)
     draw_text(screen, font, f"Reward: {reward:.2f}", c.VISUALIZE_AGENT_REWARD_TEXT_POS)
@@ -125,13 +125,12 @@ def main(model_path: Path):
 
     # Создание среды
     env = RobotEnv(
-        step_size=c.ENV_STEP_SIZE,
-        turn_angle=c.ENV_TURN_ANGLE,
         max_steps=c.EPISODE_MAX_STEPS,
         num_obstacles=c.ENV_NUM_OBSTACLES,
         robot_radius=c.ENV_ROBOT_RADIUS,
         target_radius=c.ENV_TARGET_RADIUS,
     )
+
     agent = DQNAgent(
         state_size=env.observation_space.shape[0],
         action_size=env.action_space.n,
